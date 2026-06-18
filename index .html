@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>校招匹配助手</title>
+<style>
+  :root {
+    --bg: #0f1117; --surface: #1a1d27; --card: #222633; --border: #2e3347;
+    --text: #e4e6ef; --text2: #9197b3; --accent: #6c7cff; --accent2: #4ecdc4;
+    --green: #4caf50; --yellow: #ffc107; --red: #f44336; --orange: #ff9800;
+    --purple: #b388ff; --radius: 10px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif; line-height:1.6; }
+  .app { max-width:960px; margin:0 auto; padding:16px; }
+
+  .header { display:flex; align-items:center; gap:12px; padding:20px 0 16px; border-bottom:1px solid var(--border); margin-bottom:20px; }
+  .header h1 { font-size:22px; font-weight:700; }
+  .header h1 span { color:var(--accent); }
+  .header .sub { color:var(--text2); font-size:13px; margin-left:auto; }
+
+  .tabs { display:flex; gap:4px; margin-bottom:20px; background:var(--surface); border-radius:var(--radius); padding:4px; overflow-x:auto; }
+  .tab { text-align:center; padding:10px 6px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:500; color:var(--text2); transition:all .2s; border:none; background:transparent; white-space:nowrap; min-width:64px; }
+  .tab:hover { color:var(--text); }
+  .tab.active { background:var(--card); color:var(--accent); box-shadow:0 2px 8px rgba(108,124,255,.15); }
+
+  .section { display:none; } .section.active { display:block; }
+
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; margin-bottom:14px; }
+  .card-title { font-size:15px; font-weight:600; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+  .card-title .icon { width:20px; height:20px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:12px; }
+
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px 16px; }
+  .form-grid.full { grid-template-columns:1fr; }
+  .field { display:flex; flex-direction:column; gap:4px; }
+  .field label { font-size:12px; color:var(--text2); font-weight:500; }
+  .field input,.field select,.field textarea { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-size:14px; outline:none; transition:border .2s; }
+  .field input:focus,.field select:focus,.field textarea:focus { border-color:var(--accent); }
+  .field textarea { resize:vertical; min-height:60px; }
+  .field select { cursor:pointer; }
+
+  .btn { padding:10px 20px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; border:none; transition:all .2s; }
+  .btn-primary { background:var(--accent); color:#fff; } .btn-primary:hover { filter:brightness(1.15); }
+  .btn-secondary { background:var(--card); color:var(--text); border:1px solid var(--border); } .btn-secondary:hover { border-color:var(--accent); }
+  .btn-sm { padding:6px 14px; font-size:12px; }
+  .btn-danger { background:transparent; color:var(--red); border:1px solid var(--red); } .btn-danger:hover { background:rgba(244,67,54,.1); }
+  .btn-row { display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; }
+  .btn-ghost { background:transparent; border:none; color:var(--text2); padding:4px 8px; font-size:12px; cursor:pointer; } .btn-ghost:hover { color:var(--accent); }
+
+  .import-box { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); }
+  .import-box textarea { width:100%; min-height:200px; background:transparent; border:none; color:var(--text); font-size:13px; font-family:monospace; resize:vertical; padding:14px; outline:none; }
+  .import-hint { padding:10px 14px; font-size:12px; color:var(--text2); border-top:1px solid var(--border); }
+  .import-stats { display:flex; gap:16px; padding:10px 14px; border-top:1px solid var(--border); font-size:13px; color:var(--accent2); }
+
+  .match-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+  .match-counts { display:flex; gap:8px; font-size:12px; flex-wrap:wrap; }
+  .match-counts .c { padding:3px 8px; border-radius:20px; font-weight:600; }
+  .c-star { background:rgba(108,124,255,.15); color:var(--accent); }
+  .c-ok { background:rgba(76,175,80,.12); color:var(--green); }
+  .c-warn { background:rgba(255,193,7,.12); color:var(--yellow); }
+  .c-no { background:rgba(244,67,54,.1); color:var(--red); }
+  .c-weak { background:rgba(255,152,0,.12); color:var(--orange); }
+
+  .job-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin-bottom:10px; transition:all .2s; }
+  .job-card:hover { border-color:var(--accent); transform:translateY(-1px); }
+  .job-card .jc-top { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .job-tag { font-size:11px; font-weight:700; padding:2px 8px; border-radius:4px; }
+  .tag-star { background:var(--accent); color:#fff; }
+  .tag-ok { background:var(--green); color:#fff; }
+  .tag-warn { background:var(--yellow); color:#333; }
+  .tag-no { background:var(--red); color:#fff; }
+  .tag-weak { background:var(--orange); color:#fff; }
+  .tag-urgent { background:var(--red); color:#fff; animation:pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+  .job-card .jc-name { font-size:15px; font-weight:600; }
+  .job-card .jc-company { font-size:13px; color:var(--text2); }
+  .job-card .jc-meta { display:flex; gap:10px; flex-wrap:wrap; font-size:12px; color:var(--text2); margin-top:6px; }
+  .job-card .jc-meta span { display:flex; align-items:center; gap:3px; }
+  .job-card .jc-reason { font-size:12px; color:var(--accent2); margin-top:6px; }
+  .job-card .jc-weakness { font-size:12px; color:var(--orange); margin-top:4px; }
+  .job-card .jc-actions { display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; }
+  .job-card .jc-score { font-size:11px; color:var(--text2); margin-top:4px; }
+  .job-card .jc-score b { color:var(--accent); }
+
+  .apply-box { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:16px; position:relative; }
+  .apply-box pre { white-space:pre-wrap; word-break:break-all; font-size:13px; font-family:"PingFang SC","Microsoft YaHei",sans-serif; line-height:1.8; color:var(--text); }
+  .copy-btn { position:absolute; top:10px; right:10px; }
+
+  .toast { position:fixed; top:20px; right:20px; background:var(--card); border:1px solid var(--accent); border-radius:8px; padding:12px 20px; font-size:13px; color:var(--accent); z-index:999; opacity:0; transform:translateY(-10px); transition:all .3s; pointer-events:none; }
+  .toast.show { opacity:1; transform:translateY(0); }
+
+  .empty { text-align:center; padding:40px 20px; color:var(--text2); }
+  .empty .emoji { font-size:36px; margin-bottom:10px; }
+
+  .filter-bar,.pipe-filter-bar { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+  .filter-btn,.pipe-filter-btn { padding:5px 12px; border-radius:20px; font-size:12px; cursor:pointer; border:1px solid var(--border); background:transparent; color:var(--text2); transition:all .2s; }
+  .filter-btn.active,.pipe-filter-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+
+  /* Tracking */
+  .pipeline { display:flex; gap:4px; flex-wrap:wrap; margin-top:8px; }
+  .pipe-step { padding:3px 8px; border-radius:4px; font-size:11px; font-weight:600; cursor:pointer; transition:all .2s; border:1px solid var(--border); background:transparent; color:var(--text2); }
+  .pipe-step:hover { border-color:var(--accent); color:var(--accent); }
+  .pipe-step.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .pipe-step.done { background:var(--green); color:#fff; border-color:var(--green); }
+  .track-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+  .track-stats { display:flex; gap:6px; font-size:12px; flex-wrap:wrap; }
+  .track-stats .c { padding:3px 8px; border-radius:20px; font-weight:600; }
+  .c-todo { background:rgba(108,124,255,.15); color:var(--accent); }
+  .c-applied { background:rgba(78,205,196,.15); color:var(--accent2); }
+  .c-test { background:rgba(255,152,0,.15); color:var(--orange); }
+  .c-interview { background:rgba(255,193,7,.15); color:var(--yellow); }
+  .c-offer { background:rgba(76,175,80,.15); color:var(--green); }
+  .c-reject { background:rgba(244,67,54,.1); color:var(--red); }
+  .track-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px; margin-bottom:10px; transition:all .2s; }
+  .track-card:hover { border-color:var(--accent); }
+  .track-card .tc-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+  .track-card .tc-company { font-size:14px; font-weight:600; }
+  .track-card .tc-position { font-size:13px; color:var(--text2); }
+  .track-card .tc-meta { display:flex; gap:12px; flex-wrap:wrap; font-size:12px; color:var(--text2); margin-top:4px; }
+  .track-card .tc-notes { font-size:12px; color:var(--text2); margin-top:6px; padding:6px 8px; background:var(--card); border-radius:6px; }
+  .status-badge { font-size:11px; font-weight:700; padding:2px 8px; border-radius:4px; }
+  .sb-todo { background:var(--accent); } .sb-applied { background:var(--accent2); } .sb-test { background:var(--orange); }
+  .sb-interview { background:var(--yellow); color:#333; } .sb-offer { background:var(--green); } .sb-reject { background:var(--red); } .sb-giveup { background:var(--text2); color:var(--bg); }
+  .urgent-banner { background:rgba(244,67,54,.1); border:1px solid var(--red); border-radius:var(--radius); padding:12px 16px; margin-bottom:14px; display:none; }
+  .urgent-banner.show { display:block; }
+  .urgent-banner .ub-title { font-size:14px; font-weight:600; color:var(--red); margin-bottom:6px; }
+  .urgent-banner .ub-list { font-size:13px; color:var(--text); }
+  .urgent-banner .ub-list li { margin:3px 0; }
+
+  /* Compare */
+  .compare-wrap { overflow-x:auto; margin-top:10px; }
+  .compare-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .compare-table th,.compare-table td { padding:8px 10px; border:1px solid var(--border); text-align:left; }
+  .compare-table th { background:var(--card); color:var(--text2); font-weight:500; }
+  .compare-table td { background:var(--surface); }
+  .compare-table .ct-best { background:rgba(108,124,255,.1); color:var(--accent); font-weight:600; }
+  .compare-table .ct-company { font-weight:600; white-space:nowrap; }
+  .compare-score { display:flex; align-items:center; gap:6px; }
+
+  /* Library */
+  .mat-tabs { display:flex; gap:4px; margin-bottom:16px; background:var(--card); border-radius:8px; padding:4px; }
+  .mat-tab { flex:1; text-align:center; padding:8px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:500; color:var(--text2); transition:all .2s; border:none; background:transparent; }
+  .mat-tab:hover { color:var(--text); }
+  .mat-tab.active { background:var(--surface); color:var(--accent); }
+  .mat-section { display:none; } .mat-section.active { display:block; }
+  .essay-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px; margin-bottom:10px; }
+  .essay-card .ec-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+  .essay-card .ec-title { font-size:14px; font-weight:600; }
+  .essay-card .ec-tags { display:flex; gap:4px; }
+  .ec-tag { font-size:10px; padding:2px 6px; border-radius:3px; background:var(--card); color:var(--text2); }
+  .essay-card .ec-body { font-size:13px; color:var(--text); margin-top:8px; white-space:pre-wrap; line-height:1.8; padding:8px; background:var(--card); border-radius:6px; position:relative; }
+  .essay-card .ec-copy { position:absolute; top:6px; right:6px; }
+  .qbank-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px; margin-bottom:10px; transition:all .2s; }
+  .qbank-card:hover { border-color:var(--accent); }
+  .qbank-card .qb-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+  .qbank-card .qb-title { font-size:14px; font-weight:600; }
+  .qbank-card .qb-cat { font-size:11px; font-weight:700; padding:2px 8px; border-radius:4px; }
+  .qb-cat-tech { background:var(--accent); color:#fff; } .qb-cat-fin { background:var(--accent2); color:#fff; }
+  .qb-cat-gwy { background:var(--orange); color:#fff; } .qb-cat-behavior { background:var(--purple); color:#fff; }
+  .qb-cat-other { background:var(--text2); color:var(--bg); }
+  .qbank-card .qb-links { margin-top:6px; }
+  .qbank-card .qb-link-item { display:flex; align-items:center; gap:6px; padding:4px 0; font-size:13px; }
+  .qbank-card .qb-link-item a { color:var(--accent); text-decoration:none; word-break:break-all; }
+  .qbank-card .qb-desc { font-size:12px; color:var(--text2); margin-top:4px; }
+  .qbank-card .qb-tags { display:flex; gap:4px; margin-top:6px; flex-wrap:wrap; }
+
+  /* ===== WEIGHT CONFIG ===== */
+  .weight-row { display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid var(--border); }
+  .weight-row:last-child { border-bottom:none; }
+  .weight-label { font-size:13px; min-width:80px; }
+  .weight-slider { flex:1; }
+  .weight-slider input[type=range] { width:100%; accent-color:var(--accent); }
+  .weight-val { font-size:13px; font-weight:600; color:var(--accent); min-width:28px; text-align:right; }
+
+  /* ===== MAJOR MAPPING ===== */
+  .major-map-item { display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid var(--border); }
+  .major-map-item:last-child { border-bottom:none; }
+  .major-map-cat { font-size:13px; font-weight:600; color:var(--accent); min-width:90px; }
+  .major-map-kws { font-size:12px; color:var(--text); flex:1; }
+  .major-map-item input { background:var(--card); border:1px solid var(--border); border-radius:4px; padding:4px 8px; color:var(--text); font-size:12px; width:100%; }
+  .major-map-item input:focus { border-color:var(--accent); outline:none; }
+
+  /* Modal */
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:100; display:none; align-items:center; justify-content:center; }
+  .modal-overlay.show { display:flex; }
+  .modal { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; max-width:600px; width:90%; max-height:85vh; overflow:auto; }
+  .modal-title { font-size:16px; font-weight:600; margin-bottom:16px; }
+  .modal .field { margin-bottom:10px; }
+  .modal .btn-row { margin-top:14px; justify-content:flex-end; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width:6px; } ::-webkit-scrollbar-track { background:transparent; } ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+  @media (max-width:640px) {
+    .form-grid { grid-template-columns:1fr; }
+    .tab { font-size:11px; padding:7px 4px; min-width:54px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>校招<span>匹配助手</span></h1>
+    <div class="sub">导入 → 匹配 → 追踪 → 上岸</div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('profile')">📋档案</button>
+    <button class="tab" onclick="switchTab('import')">📥导入</button>
+    <button class="tab" onclick="switchTab('match')">🎯匹配</button>
+    <button class="tab" onclick="switchTab('track')">📊进度</button>
+    <button class="tab" onclick="switchTab('compare')">⚖️对比</button>
+    <button class="tab" onclick="switchTab('library')">📚素材</button>
+    <button class="tab" onclick="switchTab('apply')">✍️报名</button>
+  </div>
+
+  <!-- ===== PROFILE ===== -->
+  <div id="sec-profile" class="section active">
+    <div class="card">
+      <div class="card-title"><div class="icon" style="background:var(--accent);color:#fff;">1</div>基本信息</div>
+      <div class="form-grid">
+        <div class="field"><label>姓名</label><input id="p_name" placeholder="你的姓名"></div>
+        <div class="field"><label>性别</label><select id="p_gender"><option value="">请选择</option><option>男</option><option>女</option></select></div>
+        <div class="field"><label>出生年月</label><input id="p_birth" placeholder="2000-01"></div>
+        <div class="field"><label>政治面貌</label><select id="p_politics"><option value="">请选择</option><option>中共党员</option><option>中共预备党员</option><option>共青团员</option><option>群众</option></select></div>
+        <div class="field"><label>民族</label><input id="p_ethnic" placeholder="汉族"></div>
+        <div class="field"><label>联系电话</label><input id="p_phone" placeholder="报名时填写"></div>
+        <div class="field"><label>电子邮箱</label><input id="p_email" placeholder="报名时填写"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="icon" style="background:var(--accent2);color:#fff;">2</div>学历与专业</div>
+      <div class="form-grid">
+        <div class="field"><label>学历</label><select id="p_degree"><option value="">请选择</option><option>本科</option><option>硕士</option><option>博士</option></select></div>
+        <div class="field"><label>毕业院校</label><input id="p_school" placeholder="你的学校"></div>
+        <div class="field"><label>院校层次</label><select id="p_schoollevel"><option value="">请选择</option><option>985</option><option>211</option><option>双一流</option><option>普通本科</option><option>海外QS前100</option><option>其他</option></select></div>
+        <div class="field"><label>专业名称</label><input id="p_major" placeholder="如：计算机科学与技术"></div>
+        <div class="field"><label>专业代码</label><input id="p_majorcode" placeholder="如：080901（选填）"></div>
+        <div class="field"><label>毕业时间</label><input id="p_graddate" placeholder="如：2027-06"></div>
+      </div>
+      <div class="form-grid full" style="margin-top:12px;">
+        <div class="field"><label>研究方向/核心课程（3-5个关键词）</label><input id="p_keywords" placeholder="如：机器学习、数据分析、Java开发"></div>
+        <div class="field"><label>外语水平</label><input id="p_english" placeholder="如：英语六级520分"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="icon" style="background:var(--green);color:#fff;">3</div>经历与证书</div>
+      <div class="form-grid full">
+        <div class="field"><label>实习经历（公司+岗位+时长，最多3段）</label><textarea id="p_intern" placeholder="1. 字节跳动 - 后端开发 - 3个月&#10;2. 中信证券 - 数据分析 - 2个月"></textarea></div>
+        <div class="field"><label>项目/竞赛经历（最多3段）</label><textarea id="p_project" placeholder="1. 数学建模国赛二等奖&#10;2. 大创项目：xxx系统设计与实现"></textarea></div>
+        <div class="field"><label>证书/资格</label><input id="p_certs" placeholder="如：CPA、CFA一级、教资、法考"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="icon" style="background:var(--yellow);color:#333;">4</div>求职偏好</div>
+      <div class="form-grid">
+        <div class="field"><label>期望城市（/分隔）</label><input id="p_city" placeholder="如：北京/上海/深圳"></div>
+        <div class="field"><label>期望行业（/分隔）</label><input id="p_industry" placeholder="如：互联网/金融/国企"></div>
+        <div class="field"><label>期望岗位类型</label><select id="p_jobtype"><option value="">请选择</option><option>技术</option><option>产品</option><option>运营</option><option>职能</option><option>管培</option><option>其他</option></select></div>
+        <div class="field"><label>其他特殊条件</label><input id="p_special" placeholder="如：退役军人/烈士子女等"></div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveProfile()">💾 保存档案</button>
+      <button class="btn btn-secondary" onclick="loadProfile()">📂 加载</button>
+      <button class="btn btn-danger btn-sm" onclick="clearProfile()">清空</button>
+    </div>
+  </div>
+
+  <!-- ===== IMPORT ===== -->
+  <div id="sec-import" class="section">
+    <div class="card">
+      <div class="card-title">📥 粘贴岗位数据</div>
+      <div class="import-box">
+        <textarea id="import_data" placeholder="从腾讯文档/Excel 复制粘贴岗位数据&#10;&#10;支持Tab分隔或CSV格式，第一行为表头"></textarea>
+        <div class="import-hint">💡 腾讯文档 → Ctrl+A → Ctrl+C → 这里 Ctrl+V</div>
+        <div class="import-stats" id="import_stats" style="display:none;"><span id="stat_total"></span><span id="stat_fields"></span></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="parseJobs()">🔍 解析</button>
+        <button class="btn btn-secondary" onclick="loadDemo()">📋 示例</button>
+        <button class="btn btn-danger btn-sm" onclick="clearJobs()">清空</button>
+      </div>
+    </div>
+    <div class="card" id="parsed_preview" style="display:none;"><div class="card-title">📊 预览</div><div id="preview_content" style="max-height:300px;overflow:auto;font-size:13px;"></div></div>
+  </div>
+
+  <!-- ===== MATCH ===== -->
+  <div id="sec-match" class="section">
+    <div id="match_empty" class="empty"><div class="emoji">🎯</div><p>请先填写档案并导入岗位</p></div>
+    <div id="match_content" style="display:none;">
+      <!-- Weight Config -->
+      <div class="card" style="margin-bottom:14px;">
+        <div class="card-title" style="cursor:pointer;" onclick="document.getElementById('weight_panel').classList.toggle('active-panel')">⚙️ 匹配权重配置 <span style="font-size:11px;color:var(--text2);margin-left:auto;">点击展开/收起</span></div>
+        <div id="weight_panel" class="active-panel" style="display:none;">
+          <div id="weight_sliders"></div>
+          <div class="btn-row"><button class="btn btn-primary btn-sm" onclick="saveWeights()">💾 保存权重</button><button class="btn btn-secondary btn-sm" onclick="resetWeights()">🔄 恢复默认</button></div>
+        </div>
+      </div>
+      <!-- Major Mapping -->
+      <div class="card" style="margin-bottom:14px;">
+        <div class="card-title" style="cursor:pointer;" onclick="document.getElementById('major_panel').classList.toggle('active-panel')">🗺️ 专业映射表 <span style="font-size:11px;color:var(--text2);margin-left:auto;">点击编辑专业分类</span></div>
+        <div id="major_panel" style="display:none;">
+          <div id="major_map_list"></div>
+          <div style="margin-top:10px;">
+            <div class="field"><label>新增分类</label><div style="display:flex;gap:8px;"><input id="new_map_cat" placeholder="类别名" style="flex:1;"><input id="new_map_kws" placeholder="关键词（逗号分隔）" style="flex:2;"><button class="btn btn-primary btn-sm" onclick="addMajorMap()">➕</button></div></div>
+          </div>
+          <div class="btn-row"><button class="btn btn-primary btn-sm" onclick="saveMajorMap()">💾 保存映射</button><button class="btn btn-secondary btn-sm" onclick="resetMajorMap()">🔄 恢复默认</button></div>
+        </div>
+      </div>
+      <div class="match-header">
+        <div class="match-counts" id="match_counts"></div>
+        <button class="btn btn-primary btn-sm" onclick="runMatch()">🔄 重新匹配</button>
+      </div>
+      <div class="filter-bar">
+        <button class="filter-btn active" onclick="setFilter('all',this)">全部</button>
+        <button class="filter-btn" onclick="setFilter('star',this)">⭐强推</button>
+        <button class="filter-btn" onclick="setFilter('ok',this)">✅能报</button>
+        <button class="filter-btn" onclick="setFilter('weak',this)">🟠竞争弱</button>
+        <button class="filter-btn" onclick="setFilter('warn',this)">⚠️待确认</button>
+        <button class="filter-btn" onclick="setFilter('no',this)">❌不能报</button>
+      </div>
+      <div id="match_list"></div>
+    </div>
+  </div>
+
+  <!-- ===== TRACKING ===== -->
+  <div id="sec-track" class="section">
+    <div id="track_empty" class="empty"><div class="emoji">📊</div><p>在匹配结果中点击「追踪」来管理投递进度</p></div>
+    <div id="track_content" style="display:none;">
+      <div class="urgent-banner" id="urgent_banner"><div class="ub-title">🔴 紧急提醒</div><ul class="ub-list" id="urgent_list"></ul></div>
+      <div class="track-header"><div class="track-stats" id="track_stats"></div><button class="btn btn-primary btn-sm" onclick="exportTracking()">📤 导出</button></div>
+      <div class="pipe-filter-bar">
+        <button class="pipe-filter-btn active" onclick="setTrackFilter('all',this)">全部</button>
+        <button class="pipe-filter-btn" onclick="setTrackFilter('todo',this)">📋待投</button>
+        <button class="pipe-filter-btn" onclick="setTrackFilter('applied',this)">📨已投</button>
+        <button class="pipe-filter-btn" onclick="setTrackFilter('test',this)">📝笔试</button>
+        <button class="pipe-filter-btn" onclick="setTrackFilter('interview',this)">🎤面试</button>
+        <button class="pipe-filter-btn" onclick="setTrackFilter('offer',this)">🎉offer</button>
+        <button class="pipe-filter-btn" onclick="setTrackFilter('reject',this)">😔已拒</button>
+      </div>
+      <div id="track_list"></div>
+    </div>
+  </div>
+
+  <!-- ===== COMPARE ===== -->
+  <div id="sec-compare" class="section">
+    <div id="compare_empty" class="empty"><div class="emoji">⚖️</div><p>先加入追踪，再在这里勾选岗位进行横向对比</p></div>
+    <div id="compare_content" style="display:none;">
+      <div class="card"><div class="card-title">⚖️ 岗位横向对比</div><div style="margin-bottom:12px;"><label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px;">选择要对比的岗位（至少2个）：</label><div id="compare_picks"></div></div><div class="btn-row"><button class="btn btn-primary btn-sm" onclick="runCompare()">📊 生成对比表</button></div></div>
+      <div class="card" id="compare_result" style="display:none;"><div class="card-title">对比结果</div><div class="compare-wrap" id="compare_table"></div></div>
+    </div>
+  </div>
+
+  <!-- ===== LIBRARY ===== -->
+  <div id="sec-library" class="section">
+    <div class="mat-tabs"><button class="mat-tab active" onclick="switchMatTab('essays')">💬 开放题</button><button class="mat-tab" onclick="switchMatTab('qbank')">📝 题库</button></div>
+    <div id="mat-essays" class="mat-section active">
+      <div class="card"><div class="card-title">💬 开放题素材库<button class="btn btn-primary btn-sm" style="margin-left:auto;" onclick="openEssayModal()">➕ 新增</button></div>
+        <div class="filter-bar"><button class="filter-btn active" onclick="setEssayFilter('all',this)">全部</button><button class="filter-btn" onclick="setEssayFilter('self',this)">自我介绍</button><button class="filter-btn" onclick="setEssayFilter('plan',this)">职业规划</button><button class="filter-btn" onclick="setEssayFilter('story',this)">经历故事</button><button class="filter-btn" onclick="setEssayFilter('company',this)">公司了解</button><button class="filter-btn" onclick="setEssayFilter('other',this)">其他</button></div>
+        <div id="essay_list"></div></div>
+    </div>
+    <div id="mat-qbank" class="mat-section">
+      <div class="card"><div class="card-title">📝 笔试题库<button class="btn btn-primary btn-sm" style="margin-left:auto;" onclick="openQbankModal()">➕ 新增</button></div>
+        <div class="filter-bar"><button class="filter-btn active" onclick="setQbankFilter('all',this)">全部</button><button class="filter-btn" onclick="setQbankFilter('tech',this)">💻技术</button><button class="filter-btn" onclick="setQbankFilter('fin',this)">🏦金融</button><button class="filter-btn" onclick="setQbankFilter('gwy',this)">🏛️行测</button><button class="filter-btn" onclick="setQbankFilter('behavior',this)">🗣️行为</button><button class="filter-btn" onclick="setQbankFilter('other',this)">📌其他</button></div>
+        <div id="qbank_list"></div></div>
+    </div>
+  </div>
+
+  <!-- ===== APPLY ===== -->
+  <div id="sec-apply" class="section">
+    <div id="apply_empty" class="empty"><div class="emoji">✍️</div><p>在匹配结果或追踪列表中点击岗位，生成报名信息</p></div>
+    <div id="apply_content" style="display:none;">
+      <div class="card"><div class="card-title" id="apply_title">报名信息</div><div class="apply-box"><button class="btn btn-primary btn-sm copy-btn" onclick="copyApply()">📋 复制</button><pre id="apply_text"></pre></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modals -->
+<div class="modal-overlay" id="modal_notes_overlay" onclick="closeModal('modal_notes_overlay')"><div class="modal" onclick="event.stopPropagation()"><div class="modal-title">📝 编辑备注</div><div class="field"><textarea id="modal_notes_input" rows="4" placeholder="笔试时间、面试安排、联系人..."></textarea></div><div class="btn-row"><button class="btn btn-secondary" onclick="closeModal('modal_notes_overlay')">取消</button><button class="btn btn-primary" onclick="saveModalNotes()">保存</button></div></div></div>
+<div class="modal-overlay" id="modal_essay_overlay" onclick="closeModal('modal_essay_overlay')"><div class="modal" onclick="event.stopPropagation()"><div class="modal-title">✍️ 编辑素材</div><div class="field"><label>标题</label><input id="me_title"></div><div class="field"><label>分类</label><select id="me_cat"><option value="self">自我介绍</option><option value="plan">职业规划</option><option value="story">经历故事</option><option value="company">公司了解</option><option value="other">其他</option></select></div><div class="field"><label>标签（/分隔）</label><input id="me_tags"></div><div class="field"><label>正文</label><textarea id="me_body" rows="8" placeholder="可用 {{公司名}} {{岗位名}} 作为占位符"></textarea></div><div class="btn-row"><button class="btn btn-secondary" onclick="closeModal('modal_essay_overlay')">取消</button><button class="btn btn-primary" onclick="saveEssay()">保存</button></div></div></div>
+<div class="modal-overlay" id="modal_qbank_overlay" onclick="closeModal('modal_qbank_overlay')"><div class="modal" onclick="event.stopPropagation()"><div class="modal-title">📝 新增题库</div><div class="field"><label>标题</label><input id="mq_title"></div><div class="field"><label>分类</label><select id="mq_cat"><option value="tech">💻技术</option><option value="fin">🏦金融</option><option value="gwy">🏛️行测</option><option value="behavior">🗣️行为</option><option value="other">📌其他</option></select></div><div class="field"><label>描述</label><input id="mq_desc"></div><div class="field"><label>标签（/分隔）</label><input id="mq_tags"></div><div class="field"><label>链接（每行：标题 链接）</label><textarea id="mq_links" rows="5" placeholder="牛客面经 https://nowcoder.com/xxx"></textarea></div><div class="btn-row"><button class="btn btn-secondary" onclick="closeModal('modal_qbank_overlay')">取消</button><button class="btn btn-primary" onclick="saveQbank()">保存</button></div></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ==================== STATE ====================
+let profile={},jobs=[],matchResults=[],currentFilter='all',tracking=[],currentTrackFilter='all',editingTrackId=null;
+let essays=[],currentEssayFilter='all',editingEssayId=null;
+let qbank=[],currentQbankFilter='all',editingQbankId=null;
+let compareSelected=new Set();
+const profileFields=['p_name','p_gender','p_birth','p_politics','p_ethnic','p_phone','p_email','p_degree','p_school','p_schoollevel','p_major','p_majorcode','p_graddate','p_keywords','p_english','p_intern','p_project','p_certs','p_city','p_industry','p_jobtype','p_special'];
+
+// ==================== WEIGHTS ====================
+const DEFAULT_WEIGHTS={degree:15,major:25,gradYear:15,english:10,politics:15,city:10,certs:10,internMatch:10,competitiveness:5};
+// Threshold: star requires weightedFit >= threshold AND no competition weakness
+const DEFAULT_THRESHOLDS={star:60,weak:1};
+let weights={...DEFAULT_WEIGHTS},thresholds={...DEFAULT_THRESHOLDS};
+
+function loadWeights(){const s=localStorage.getItem('job_matcher_weights');if(s)weights=JSON.parse(s);const t=localStorage.getItem('job_matcher_thresholds');if(t)thresholds=JSON.parse(t);}
+function saveWeights(){localStorage.setItem('job_matcher_weights',JSON.stringify(weights));localStorage.setItem('job_matcher_thresholds',JSON.stringify(thresholds));renderWeightSliders();showToast('✅ 权重已保存');}
+function resetWeights(){weights={...DEFAULT_WEIGHTS};thresholds={...DEFAULT_THRESHOLDS};saveWeights();showToast('已恢复默认');}
+loadWeights();
+
+function renderWeightSliders(){
+  const dimLabels={degree:'学历匹配',major:'专业对口',gradYear:'毕业年限',english:'外语水平',politics:'政治面貌',city:'城市偏好',certs:'证书优势',internMatch:'实习相关',competitiveness:'竞争力'};
+  let html='';
+  Object.keys(weights).forEach(k=>{
+    html+=`<div class="weight-row"><span class="weight-label">${dimLabels[k]||k}</span><div class="weight-slider"><input type="range" min="0" max="30" value="${weights[k]}" oninput="weights['${k}']=parseInt(this.value);this.parentElement.nextElementSibling.textContent=this.value"></div><span class="weight-val">${weights[k]}</span></div>`;
+  });
+  html+=`<div style="margin-top:12px;"><div class="weight-row"><span class="weight-label">⭐强推阈值</span><div class="weight-slider"><input type="range" min="30" max="100" value="${thresholds.star}" oninput="thresholds.star=parseInt(this.value);this.parentElement.nextElementSibling.textContent=this.value"></div><span class="weight-val">${thresholds.star}</span></div></div>`;
+  document.getElementById('weight_sliders').innerHTML=html;
+}
+
+// ==================== MAJOR MAPPING ====================
+const DEFAULT_MAJOR_MAP={
+  '计算机类':'计算机,软件,网络,信息安全,人工智能,数据科学,信息工程,算法,物联网,大数据,网络工程,软件工程',
+  '电子信息类':'电子,通信,微电子,光电,信息工程,信号处理,电磁场',
+  '经济类':'经济,金融,保险,贸易,财政,投资',
+  '管理类':'管理,工商管理,公共管理,信息管理,行政管理,人力资源',
+  '机械类':'机械,车辆,自动化,工业工程,制造,机电',
+  '土木类':'土木,建筑,市政,交通工程,给排水,城乡规划',
+  '化工类':'化工,化学,材料,制药,环境,生物工程',
+  '电气类':'电气,电力,能源,新能源,自动化,智能电网',
+  '数学类':'数学,统计,应用数学,数据科学,精算',
+  '文学类':'中文,新闻,传播,外语,英语,翻译,广告,编辑,出版',
+  '历史学类':'历史,历史学,世界史,考古,文物,博物馆,文物保护,中国史,全球史',
+  '哲学类':'哲学,逻辑学,伦理学,宗教学,美学,马克思主义哲学,中国哲学,西方哲学',
+  '政治学类':'政治,政治学,国际政治,国际关系,外交,政治行政,科学社会主义,中共党史',
+  '社会学类':'社会学,社会工作,人类学,民俗学,人口学,民族学,社会政策',
+  '民族学类':'民族学,民族史,少数民族,民族区域,民族语言,民族文化',
+  '马克思主义理论类':'马克思主义,思政,思想政治教育,中共党史,科学社会主义,党建',
+  '教育学类':'教育,教育学,心理学,体育,学前,特殊教育,课程,教师',
+  '心理学类':'心理学,应用心理,心理健康,心理咨询,发展心理',
+  '法律类':'法学,法律,知识产权,国际法,刑法,民商法,经济法,行政法',
+  '公共管理类':'公共管理,行政管理,社会保障,土地资源,城市管理,公共政策',
+  '图书情报类':'图书馆,档案,情报,信息资源,文献',
+  '航空航天类':'航空航天,力学,飞行器,控制,兵器',
+  '医学类':'临床,药学,公共卫生,护理,口腔',
+  '理学类':'物理,化学,生物,地理,天文,大气',
+  '语言类':'英语,日语,俄语,法语,德语,西班牙语,翻译'
+};
+let majorMap={...DEFAULT_MAJOR_MAP};
+function loadMajorMap(){const s=localStorage.getItem('job_matcher_major_map');if(s)majorMap=JSON.parse(s);}
+function saveMajorMap(){localStorage.setItem('job_matcher_major_map',JSON.stringify(majorMap));renderMajorMapList();showToast('✅ 映射表已保存');}
+function resetMajorMap(){majorMap={...DEFAULT_MAJOR_MAP};saveMajorMap();showToast('已恢复默认');}
+loadMajorMap();
+
+function renderMajorMapList(){
+  let html='';
+  Object.entries(majorMap).forEach(([cat,kws])=>{
+    html+=`<div class="major-map-item"><span class="major-map-cat">${cat}</span><input value="${kws}" onchange="majorMap['${cat}']=this.value"></div>`;
+  });
+  document.getElementById('major_map_list').innerHTML=html;
+}
+function addMajorMap(){
+  const cat=document.getElementById('new_map_cat').value.trim();const kws=document.getElementById('new_map_kws').value.trim();
+  if(!cat||!kws){showToast('⚠️ 请填写类别和关键词');return;}
+  majorMap[cat]=kws;saveMajorMap();document.getElementById('new_map_cat').value='';document.getElementById('new_map_kws').value='';showToast('✅ 已添加');
+}
+
+// ==================== TAB ====================
+function switchTab(n){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));event.target.classList.add('active');document.getElementById('sec-'+n).classList.add('active');if(n==='match'){renderWeightSliders();renderMajorMapList();runMatch();}if(n==='track')renderTracking();if(n==='compare')renderComparePicks();if(n==='library'){renderEssays();renderQbank();}}
+function switchMatTab(n){document.querySelectorAll('.mat-tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.mat-section').forEach(s=>s.classList.remove('active'));event.target.classList.add('active');document.getElementById('mat-'+n).classList.add('active');}
+
+function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
+function closeModal(id){if(id)document.getElementById(id).classList.remove('show');editingTrackId=null;editingEssayId=null;editingQbankId=null;}
+
+// CSS toggle for panels
+document.head.insertAdjacentHTML('beforeend','<style>.active-panel{display:block!important}</style>');
+
+// ==================== PROFILE ====================
+function saveProfile(){profile={};profileFields.forEach(id=>profile[id]=document.getElementById(id).value);localStorage.setItem('job_matcher_profile',JSON.stringify(profile));showToast('✅ 已保存');}
+function loadProfile(){const s=localStorage.getItem('job_matcher_profile');if(!s){showToast('⚠️ 没有');return;}profile=JSON.parse(s);profileFields.forEach(id=>document.getElementById(id).value=profile[id]||'');showToast('✅ 已加载');}
+function clearProfile(){profileFields.forEach(id=>document.getElementById(id).value='');profile={};localStorage.removeItem('job_matcher_profile');showToast('已清空');}
+
+// ==================== JOB PARSING ====================
+function parseJobs(){
+  const raw=document.getElementById('import_data').value.trim();if(!raw){showToast('⚠️ 请先粘贴数据');return;}
+  jobs=[];const lines=raw.split('\n').filter(l=>l.trim());if(lines.length<2){showToast('⚠️ 数据太少');return;}
+  const sep=lines[0].includes('\t')?'\t':',';const headers=lines[0].split(sep).map(h=>h.trim());
+  const hm={};headers.forEach((h,i)=>{const l=h.toLowerCase();if(l.includes('单位')||l.includes('公司')||l.includes('企业'))hm[i]='company';else if(l.includes('岗位')||l.includes('职位'))hm[i]='position';else if(l.includes('地点')||l.includes('城市'))hm[i]='location';else if(l.includes('学历')||l.includes('学位'))hm[i]='degree';else if(l.includes('专业'))hm[i]='major';else if(l.includes('毕业')||l.includes('届'))hm[i]='gradYear';else if(l.includes('要求')||l.includes('条件')||l.includes('其他')||l.includes('备注')||l.includes('限制'))hm[i]='requirements';else if(l.includes('截止')||l.includes('时间')||l.includes('日期'))hm[i]='deadline';else if(l.includes('链接')||l.includes('报名')||l.includes('http'))hm[i]='link';else hm[i]='extra_'+i;});
+  for(let i=1;i<lines.length;i++){const c=lines[i].split(sep).map(x=>x.trim());if(c.length<2)continue;const j={};headers.forEach((_,idx)=>{j[hm[idx]||'col_'+idx]=(c[idx]||'').trim();});if(!j.company&&!j.position)continue;j._id=i;jobs.push(j);}
+  document.getElementById('import_stats').style.display='flex';document.getElementById('stat_total').textContent='解析: '+jobs.length+' 条';
+  const kf=Object.values(hm).filter(v=>!v.startsWith('extra_')&&!v.startsWith('col_'));document.getElementById('stat_fields').textContent='字段: '+kf.length+' 个';
+  document.getElementById('parsed_preview').style.display='block';
+  let h='<table style="width:100%;border-collapse:collapse;font-size:12px;"><tr>';['单位','岗位','地点','学历','专业','截止'].forEach(x=>h+='<th style="padding:6px 8px;text-align:left;color:var(--text2);">'+x+'</th>');h+='</tr>';
+  jobs.slice(0,50).forEach(j=>{h+='<tr>';h+='<td style="padding:5px 8px;">'+(j.company||'-')+'</td>';h+='<td style="padding:5px 8px;">'+(j.position||'-')+'</td>';h+='<td style="padding:5px 8px;">'+(j.location||'-')+'</td>';h+='<td style="padding:5px 8px;">'+(j.degree||'-')+'</td>';h+='<td style="padding:5px 8px;">'+(j.major||'-')+'</td>';h+='<td style="padding:5px 8px;">'+(j.deadline||'-')+'</td></tr>';});h+='</table>';
+  document.getElementById('preview_content').innerHTML=h;showToast('✅ 解析完成 '+jobs.length+' 条');switchTab('match');
+}
+function clearJobs(){jobs=[];document.getElementById('import_data').value='';document.getElementById('import_stats').style.display='none';document.getElementById('parsed_preview').style.display='none';showToast('已清空');}
+function loadDemo(){const d=`单位名称\t岗位名称\t工作地点\t学历要求\t专业要求\t毕业年限\t其他要求\t报名截止时间\t报名链接
+中国银行总行\t管培生\t北京\t硕士及以上\t经济/金融/管理/计算机类\t2026-2027届\t需英语六级\t2026-07-15\thttps://boc.com
+中国石化\t技术岗\t北京/上海\t本科及以上\t化工/机械/计算机类\t2026-2027届\t需党员优先\t2026-06-30\thttps://sinopec.com
+国家电网\t信息技术岗\t多城市\t硕士及以上\t计算机/电子信息/通信\t2027届\t需英语四级\t2026-08-01\thttps://sgcc.com
+中国移动\t产品经理\t北京\t本科及以上\t不限专业\t2026-2027届\t无\t2026-07-20\thttps://chinamobile.com
+中信证券\t投行岗\t北京/深圳\t硕士及以上\t金融/经济/会计\t2026-2027届\t需CPA/CFA优先\t2026-06-25\thttps://citics.com
+中国建筑\t工程师\t全国\t本科及以上\t土木/建筑/机械\t2026-2027届\t男生优先\t2026-07-10\thttps://cscec.com
+中国航天\t研发岗\t北京/西安\t硕士及以上\t航空航天/力学/控制\t2026-2028届\t需党员\t2026-09-01\thttps://spacechina.com
+工商银行总行\t金融科技岗\t北京\t硕士及以上\t计算机/统计/数学\t2027届\t需英语六级\t2026-07-31\thttps://icbc.com
+中国海油\t技术培训生\t天津/深圳\t本科及以上\t石油/化工/机械/电气\t2026-2027届\t无\t2026-06-28\thttps://cnooc.com
+中国中铁\t项目管理岗\t全国\t本科及以上\t土木/交通/管理\t2026-2027届\t男生优先\t2026-07-05\thttps://crec.com`;document.getElementById('import_data').value=d;showToast('✅ 已加载示例');}
+
+// ==================== MATCHING (重构) ====================
+function runMatch(){
+  if(!jobs.length){document.getElementById('match_empty').style.display='block';document.getElementById('match_content').style.display='none';return;}
+  profileFields.forEach(id=>{if(!profile[id])profile[id]=document.getElementById(id).value||'';});
+  document.getElementById('match_empty').style.display='none';document.getElementById('match_content').style.display='block';
+  matchResults=jobs.map(j=>matchJob(j));
+  const order={star:0,ok:1,weak:2,warn:3,no:4};
+  matchResults.sort((a,b)=>(order[a.level]||9)-(order[b.level]||9)||(a.deadlineSort||99)-(b.deadlineSort||99));
+  renderMatch();
+}
+
+function matchJob(job){
+  let fitScore=0,compScore=0; // fitScore = 加权匹配分, compScore = 竞争力减分
+  let reasons=[],issues=[],weaknesses=[];
+  let level='ok';
+
+  const pD=profile.p_degree||'',pM=profile.p_major||'',pK=(profile.p_keywords||'').toLowerCase(),pG=profile.p_graddate||'',pE=profile.p_english||'',pP=profile.p_politics||'',pGen=profile.p_gender||'',pC=(profile.p_city||'').split('/').map(c=>c.trim()),pCer=(profile.p_certs||'').toLowerCase(),pInt=(profile.p_intern||'').toLowerCase();
+  const jD=(job.degree||'').toLowerCase(),jM=(job.major||'').toLowerCase(),jGY=(job.gradYear||'').toLowerCase(),jR=(job.requirements||'').toLowerCase(),jL=(job.location||'').toLowerCase();
+
+  // === 硬性条件 ===
+  // Degree
+  const dOk=checkDegree(pD,jD);
+  if(dOk===true){fitScore+=weights.degree;reasons.push('学历满足');}
+  else if(dOk===false){issues.push('学历不符: 需'+job.degree);level='no';}
+  else{issues.push('学历待确认');level='warn';}
+
+  // Major
+  const mOk=checkMajor(pM,pK,jM);
+  if(mOk===true){fitScore+=weights.major;reasons.push('专业对口');}
+  else if(mOk==='maybe'){fitScore+=Math.round(weights.major*0.4);issues.push('专业可能相关，需确认');if(level!=='no')level='warn';}
+  else if(mOk===false&&jM&&!jM.includes('不限')){issues.push('专业不符: 需'+job.major);level='no';}
+
+  // Grad year
+  if(jGY){const gOk=checkGradYear(pG,jGY);if(gOk===true){fitScore+=weights.gradYear;reasons.push('毕业年限符合');}else if(gOk===false){issues.push('毕业年限不符: '+job.gradYear);level='no';}else{issues.push('毕业年限待确认');if(level!=='no')level='warn';}}
+
+  // === 如果硬性条件已判no，不再继续算分 ===
+  if(level==='no'){return{...job,level,fitScore:0,compPenalty:0,reasons,issues,weaknesses,deadlineSort:parseDeadlineSort(job.deadline||'')};}
+
+  // === 加分项 ===
+  // English
+  if(jR.includes('英语')||jR.includes('六级')||jR.includes('四级')||jR.includes('cet')){
+    if(pE){fitScore+=weights.english;reasons.push('外语满足');}
+    else{issues.push('需确认外语水平');if(level!=='no')level='warn';}
+  }
+
+  // Politics: 区分硬性要求 vs 优先
+  const needParty=jR.includes('需党员')&&!jR.includes('优先');
+  const partyBonus=jR.includes('党员优先')||jR.includes('党员优先');
+  if(needParty||partyBonus){
+    if(pP.includes('党员')||pP==='中共党员'||pP==='中共预备党员'){fitScore+=weights.politics;reasons.push('党员优势');}
+    else if(needParty){weaknesses.push('要求党员，你不是 → 竞争劣势');compScore+=2;}
+    else if(partyBonus){weaknesses.push('党员优先，你不是 → 竞争劣势');compScore+=1;}
+  }
+
+  // Gender: 区分硬性 vs 优先
+  const maleHard=jR.includes('仅限男')||jR.includes('限男生');
+  const maleBonus=jR.includes('男生优先')&&!maleHard;
+  if(maleHard&&pGen!=='男'){issues.push('仅限男生');level='no';}
+  else if(maleBonus&&pGen!=='男'){weaknesses.push('男生优先，你不是 → 竞争劣势');compScore+=1;}
+
+  // City
+  if(jL&&pC.length){const lm=pC.some(c=>jL.includes(c.toLowerCase())||c.toLowerCase().includes(jL.split('/')[0]));if(lm){fitScore+=weights.city;reasons.push('城市匹配');}}
+
+  // Certs
+  if(pCer&&jR){const cs=pCer.split(/[,，、\/]/);const hasCert=cs.some(c=>jR.includes(c.trim()));if(hasCert){fitScore+=weights.certs;reasons.push('证书优势');}
+    // If job mentions certs but user doesn't have them
+    const jobCerts=jR.match(/cpa|cfa|acca|法考|教资|司考|注会/gi);
+    if(jobCerts&&!hasCert){weaknesses.push('岗位提及证书要求，你未持有 → 竞争劣势');compScore+=1;}}
+
+  // Intern relevance
+  if(pInt&&jM){const iw=pInt.split(/[,，、\/\s]+/);const match=iw.some(w=>jM.includes(w.toLowerCase()));if(match){fitScore+=weights.internMatch;reasons.push('实习相关');}}
+
+  // === 竞争力维度 ===
+  // School tier vs typical applicants
+  const pSL=(profile.p_schoollevel||'').toLowerCase();
+  if(pSL&&jR){
+    if(jR.includes('985优先')&&pSL!=='985'){weaknesses.push('985优先，你不是 → 竞争劣势');compScore+=1;}
+    if(jR.includes('211以上')&&(pSL!=='985'&&pSL!=='211')){weaknesses.push('211以上要求，你不是 → 竞争劣势');compScore+=1;}
+  }
+
+  // === 最终判定 ===
+  const compPenalty=compScore*weights.competitiveness;
+  const effectiveScore=fitScore-compPenalty;
+
+  if(level==='warn'){
+    // already set
+  } else if(effectiveScore>=thresholds.star&&weaknesses.length<thresholds.weak){
+    level='star';
+  } else if(weaknesses.length>=2&&level==='ok'){
+    level='weak'; // 能报但竞争弱
+  } else {
+    level='ok';
+  }
+
+  return{...job,level,fitScore,compPenalty,effectiveScore,reasons,issues,weaknesses,deadlineSort:parseDeadlineSort(job.deadline||'')};
+}
+
+function checkDegree(p,j){if(!j||j.includes('不限'))return true;if(!p)return null;const d={'本科':1,'硕士':2,'博士':3};return(d[p]||0)>=(j.includes('硕士')?2:j.includes('博士')?3:j.includes('本科')?1:0)||null;}
+function checkMajor(pM,pK,jM){
+  if(!jM||jM.includes('不限'))return true;
+  if(!pM&&!pK)return null;
+  const mw=(pM+' '+pK).toLowerCase().split(/[,，、\s\/]+/);
+  const jw=jM.split(/[,，、\/\s]+/);
+  // Direct match
+  for(const j of jw)for(const p of mw)if(p.includes(j)||j.includes(p))return true;
+  // Major map
+  for(const j of jw){
+    for(const[cat,kwStr]of Object.entries(majorMap)){
+      const catName=cat.replace('类','');
+      if(j.includes(catName)||catName.includes(j)){
+        const kws=kwStr.split(/[,，、]/).map(k=>k.trim().toLowerCase());
+        if(kws.some(k=>mw.some(p=>p.includes(k)||k.includes(p))))return'maybe';
+      }
+      // Also check if j directly matches any keyword in the category
+      const kws=kwStr.split(/[,，、]/).map(k=>k.trim().toLowerCase());
+      if(kws.some(k=>j.includes(k)||k.includes(j))){
+        if(mw.some(p=>kws.some(k=>p.includes(k)||k.includes(p))))return'maybe';
+      }
+    }
+  }
+  return false;
+}
+function checkGradYear(p,j){if(!j)return true;if(!p)return null;const py=parseInt(p.substring(0,4));if(!py)return null;const ys=j.match(/\d{2,4}/g);if(!ys)return null;return ys.map(y=>y.length===2?2000+parseInt(y):parseInt(y)).includes(py);}
+function parseDeadlineSort(d){if(!d)return 99;const m=d.match(/(\d{4})[\/-](\d{1,2})/);return m?parseInt(m[1]+m[2].padStart(2,'0')):98;}
+function getDeadlineTag(dl){if(!dl)return'';const m=dl.match(/(\d{4})[\/-](\d{1,2})[\/-]?(\d{1,2})?/);if(!m)return'';const d=new Date(parseInt(m[1]),parseInt(m[2])-1,parseInt(m[3]||1));const diff=(d-new Date())/864e5;if(diff<0)return'<span class="job-tag tag-no">已截止</span>';if(diff<=3)return'<span class="job-tag tag-urgent">🔴'+Math.ceil(diff)+'天后</span>';if(diff<=7)return'<span class="job-tag" style="background:var(--yellow);color:#333;">🟡'+Math.ceil(diff)+'天后</span>';return'<span style="font-size:11px;color:var(--text2);">🟢'+Math.ceil(diff)+'天后</span>';}
+function daysUntil(dl){if(!dl)return 999;const m=dl.match(/(\d{4})[\/-](\d{1,2})[\/-]?(\d{1,2})?/);if(!m)return 999;return Math.ceil((new Date(parseInt(m[1]),parseInt(m[2])-1,parseInt(m[3]||1))-new Date())/864e5);}
+
+function renderMatch(){
+  const counts={star:0,ok:0,weak:0,warn:0,no:0};matchResults.forEach(r=>counts[r.level]=(counts[r.level]||0)+1);
+  document.getElementById('match_counts').innerHTML=`<span class="c c-star">⭐强推${counts.star||0}</span><span class="c c-ok">✅能报${counts.ok||0}</span><span class="c c-weak" style="background:rgba(255,152,0,.12);color:var(--orange);">🟠竞争弱${counts.weak||0}</span><span class="c c-warn">⚠️待确认${counts.warn||0}</span><span class="c c-no">❌不能报${counts.no||0}</span>`;
+  const filtered=currentFilter==='all'?matchResults:matchResults.filter(r=>r.level===currentFilter);
+  if(!filtered.length){document.getElementById('match_list').innerHTML='<div class="empty"><div class="emoji">🔍</div><p>没有匹配</p></div>';return;}
+  const tagCls={star:'tag-star',ok:'tag-ok',weak:'tag-weak',warn:'tag-warn',no:'tag-no'};
+  const tagLbl={star:'⭐ 强烈推荐',ok:'✅ 能报',weak:'🟠 竞争弱势',warn:'⚠️ 待确认',no:'❌ 不能报'};
+  let html='';
+  filtered.forEach(r=>{
+    const isT=tracking.some(t=>t.jobId===r._id);
+    const scoreInfo=r.effectiveScore!==undefined?`<div class="jc-score">匹配分 <b>${r.fitScore}</b>${r.compPenalty?' - 竞争减分 '+r.compPenalty:''} = <b>${r.effectiveScore}</b></div>`:'';
+    html+=`<div class="job-card"><div class="jc-top"><span class="job-tag ${tagCls[r.level]||'tag-ok'}">${tagLbl[r.level]||r.level}</span>${getDeadlineTag(r.deadline)}</div>
+      <div class="jc-name">${r.position||'未知岗位'}</div><div class="jc-company">${r.company||''}</div>
+      <div class="jc-meta">${r.location?`<span>📍${r.location}</span>`:''} ${r.degree?`<span>🎓${r.degree}</span>`:''} ${r.major?`<span>📚${r.major}</span>`:''} ${r.deadline?`<span>⏰${r.deadline}</span>`:''}</div>
+      ${r.reasons.length?`<div class="jc-reason">💡 ${r.reasons.join(' · ')}</div>`:''}
+      ${r.weaknesses.length?`<div class="jc-weakness">🟠 ${r.weaknesses.join(' · ')}</div>`:''}
+      ${r.issues.length?`<div style="font-size:12px;color:var(--yellow);margin-top:4px;">⚠️ ${r.issues.join(' · ')}</div>`:''}
+      ${scoreInfo}
+      <div class="jc-actions"><button class="btn btn-primary btn-sm" onclick="generateApply(${r._id})">✍️ 报名</button>
+      ${isT?'<button class="btn btn-ghost" disabled>✅ 已追踪</button>':`<button class="btn btn-secondary btn-sm" onclick="addToTrack(${r._id},event)">📊 追踪</button>`}
+      ${r.link?`<a href="${r.link}" target="_blank" style="color:var(--accent);font-size:12px;text-decoration:none;align-self:center;">🔗 链接</a>`:''}</div></div>`;
+  });
+  document.getElementById('match_list').innerHTML=html;
+}
+function setFilter(f,btn){currentFilter=f;document.querySelectorAll('#sec-match .filter-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderMatch();}
+
+// ==================== TRACKING ====================
+function addToTrack(id,e){if(e)e.stopPropagation();const j=jobs.find(j=>j._id===id);if(!j)return;if(tracking.some(t=>t.jobId===id)){showToast('⚠️ 已在追踪');return;}tracking.push({jobId:id,company:j.company,position:j.position,location:j.location,deadline:j.deadline,link:j.link,status:'todo',notes:'',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),history:[{status:'todo',time:new Date().toISOString()}]});saveTracking();showToast('✅ 已追踪');renderMatch();}
+function removeFromTrack(id){tracking=tracking.filter(t=>t.jobId!==id);saveTracking();renderTracking();showToast('已移除');}
+function updateTrackStatus(id,s){const t=tracking.find(t=>t.jobId===id);if(!t)return;t.status=s;t.updatedAt=new Date().toISOString();t.history.push({status:s,time:t.updatedAt});saveTracking();renderTracking();}
+function saveTracking(){localStorage.setItem('job_matcher_tracking',JSON.stringify(tracking));}
+function openNotesModal(id){editingTrackId=id;const t=tracking.find(t=>t.jobId===id);document.getElementById('modal_notes_input').value=t?t.notes:'';document.getElementById('modal_notes_overlay').classList.add('show');}
+function saveModalNotes(){if(!editingTrackId)return;const t=tracking.find(t=>t.jobId===editingTrackId);if(t){t.notes=document.getElementById('modal_notes_input').value;t.updatedAt=new Date().toISOString();saveTracking();renderTracking();showToast('✅ 已保存');}closeModal('modal_notes_overlay');}
+
+function renderTracking(){
+  if(!tracking.length){document.getElementById('track_empty').style.display='block';document.getElementById('track_content').style.display='none';return;}
+  document.getElementById('track_empty').style.display='none';document.getElementById('track_content').style.display='block';
+  const c={todo:0,applied:0,test:0,interview:0,offer:0,reject:0,giveup:0};tracking.forEach(t=>c[t.status]++);
+  document.getElementById('track_stats').innerHTML=`<span class="c c-todo">📋${c.todo}</span><span class="c c-applied">📨${c.applied}</span><span class="c c-test">📝${c.test}</span><span class="c c-interview">🎤${c.interview}</span><span class="c c-offer">🎉${c.offer}</span><span class="c c-reject">😔${c.reject+c.giveup}</span>`;
+  const urg=tracking.filter(t=>t.status==='todo'&&daysUntil(t.deadline)<=3&&daysUntil(t.deadline)>=0);
+  const ub=document.getElementById('urgent_banner');if(urg.length){ub.classList.add('show');document.getElementById('urgent_list').innerHTML=urg.map(u=>`<li>${u.company}·${u.position} — <b>${daysUntil(u.deadline)===0?'今天截止':daysUntil(u.deadline)+'天后截止'}</b></li>`).join('');}else ub.classList.remove('show');
+  const filtered=currentTrackFilter==='all'?tracking:tracking.filter(t=>t.status===currentTrackFilter);
+  if(!filtered.length){document.getElementById('track_list').innerHTML='<div class="empty" style="padding:20px;"><p>该状态下没有</p></div>';return;}
+  const so={todo:0,applied:1,test:2,interview:3,offer:4,reject:5,giveup:6};filtered.sort((a,b)=>{const au=a.status==='todo'?daysUntil(a.deadline):999;const bu=b.status==='todo'?daysUntil(b.deadline):999;return au!==bu?au-bu:(so[a.status]||9)-(so[b.status]||9);});
+  const steps=['todo','applied','test','interview','offer'],sl={todo:'待投',applied:'已投',test:'笔试',interview:'面试',offer:'offer'},sbCls={todo:'sb-todo',applied:'sb-applied',test:'sb-test',interview:'sb-interview',offer:'sb-offer',reject:'sb-reject',giveup:'sb-giveup'},sbLbl={todo:'待投递',applied:'已投递',test:'笔试',interview:'面试',offer:'已offer',reject:'已拒信',giveup:'已放弃'};
+  let html='';filtered.forEach(t=>{
+    html+=`<div class="track-card"><div class="tc-top"><div><span class="status-badge ${sbCls[t.status]||'sb-todo'}">${sbLbl[t.status]||t.status}</span> <span class="tc-company">${t.company||'未知'}</span> <span class="tc-position">${t.position||''}</span></div><button class="btn btn-ghost" onclick="removeFromTrack(${t.jobId})">🗑️</button></div>
+    <div class="tc-meta">${t.location?`<span>📍${t.location}</span>`:''} ${t.deadline?`<span>⏰${t.deadline}</span>`:''} ${t.link?`<span><a href="${t.link}" target="_blank" style="color:var(--accent);text-decoration:none;">🔗报名</a></span>`:''}</div>
+    <div class="pipeline">${steps.map(s=>{const a=t.status===s,d=steps.indexOf(s)<steps.indexOf(t.status);return`<button class="pipe-step ${a?'active':d?'done':''}" onclick="updateTrackStatus(${t.jobId},'${s}')">${sl[s]}</button>`;}).join('')}<button class="pipe-step ${t.status==='reject'?'active':''}" onclick="updateTrackStatus(${t.jobId},'reject')">已拒</button><button class="pipe-step ${t.status==='giveup'?'active':''}" onclick="updateTrackStatus(${t.jobId},'giveup')">放弃</button></div>
+    ${t.notes?`<div class="tc-notes">📝 ${t.notes}</div>`:''}
+    <div class="tc-actions"><button class="btn btn-secondary btn-sm" onclick="openNotesModal(${t.jobId})">📝备注</button><button class="btn btn-primary btn-sm" onclick="generateApply(${t.jobId})">✍️报名</button></div></div>`;
+  });
+  document.getElementById('track_list').innerHTML=html;
+}
+function setTrackFilter(f,btn){currentTrackFilter=f;document.querySelectorAll('.pipe-filter-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderTracking();}
+function exportTracking(){if(!tracking.length){showToast('⚠️ 没有');return;}const sl={todo:'待投递',applied:'已投递',test:'笔试',interview:'面试',offer:'已offer',reject:'已拒信',giveup:'已放弃'};let csv='单位,岗位,状态,截止,备注\n';tracking.forEach(t=>{csv+=`"${(t.company||'').replace(/"/g,'""')}","${(t.position||'').replace(/"/g,'""')}","${sl[t.status]||t.status}","${t.deadline||''}","${(t.notes||'').replace(/"/g,'""')}"\n`;});const b=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=`校招进度_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(u);showToast('✅ 已导出');}
+
+// ==================== COMPARE ====================
+function renderComparePicks(){if(!tracking.length){document.getElementById('compare_empty').style.display='block';document.getElementById('compare_content').style.display='none';return;}document.getElementById('compare_empty').style.display='none';document.getElementById('compare_content').style.display='block';compareSelected=new Set();let h='';tracking.forEach(t=>{h+=`<label style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px;cursor:pointer;"><input type="checkbox" value="${t.jobId}" onchange="toggleCompare(${t.jobId},this.checked)"><span class="status-badge ${t.status==='offer'?'sb-offer':t.status==='interview'?'sb-interview':'sb-todo'}">${t.status==='offer'?'offer':t.status==='interview'?'面试':'待投'}</span><span>${t.company} · ${t.position}</span></label>`;});document.getElementById('compare_picks').innerHTML=h;document.getElementById('compare_result').style.display='none';}
+function toggleCompare(id,c){if(c)compareSelected.add(id);else compareSelected.delete(id);}
+function runCompare(){if(compareSelected.size<2){showToast('⚠️ 至少选2个');return;}const picks=tracking.filter(t=>compareSelected.has(t.jobId));let h='<table class="compare-table"><thead><tr><th style="width:90px;">维度</th>';picks.forEach(p=>h+=`<th class="ct-company">${p.company}<br><span style="font-weight:400;font-size:11px;">${p.position||''}</span></th>`);h+='</tr></thead><tbody>';const dims=[['单位','company'],['岗位','position'],['城市','location'],['截止','deadline'],['状态','status'],['链接','link']];const sl={todo:'待投递',applied:'已投递',test:'笔试',interview:'面试',offer:'已offer',reject:'已拒',giveup:'已放弃'};dims.forEach(([label,key])=>{h+='<tr><td>'+label+'</td>';picks.forEach(p=>{let v=key==='status'?(sl[p.status]||p.status):(p[key]||'-');if(key==='link'&&p.link)v=`<a href="${p.link}" target="_blank" style="color:var(--accent);font-size:11px;">链接</a>`;h+=`<td>${v}</td>`;});h+='</tr>';});['薪资（如已知）','户口概率','加班强度','发展空间'].forEach(d=>{h+='<tr><td>'+d+'</td>';picks.forEach(p=>{const k='cmp_'+d+'_'+p.jobId;const sv=localStorage.getItem(k)||'';h+=`<td><input style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:4px;padding:4px 6px;color:var(--text);font-size:12px;" value="${sv}" onchange="localStorage.setItem('${k}',this.value)" placeholder="…"></td>`;});h+='</tr>';});h+='<tr><td style="font-weight:600;">⭐ 评分</td>';picks.forEach(p=>{const sk='cmp_score_'+p.jobId;const sv=localStorage.getItem(sk)||5;h+=`<td><div class="compare-score"><input type="range" min="1" max="10" value="${sv}" style="flex:1;" onchange="localStorage.setItem('${sk}',this.value);this.nextElementSibling.textContent=this.value"><span style="font-size:14px;font-weight:600;min-width:16px;">${sv}</span></div></td>`;});h+='</tr></tbody></table>';document.getElementById('compare_table').innerHTML=h;document.getElementById('compare_result').style.display='block';showToast('✅ 对比表已生成');}
+
+// ==================== ESSAYS ====================
+function loadEssays(){const s=localStorage.getItem('job_matcher_essays');if(s)essays=JSON.parse(s);}function saveEssays(){localStorage.setItem('job_matcher_essays',JSON.stringify(essays));}loadEssays();
+function openEssayModal(id){editingEssayId=id||null;if(id){const e=essays.find(e=>e.id===id);document.getElementById('me_title').value=e.title;document.getElementById('me_cat').value=e.cat;document.getElementById('me_tags').value=(e.tags||[]).join('/');document.getElementById('me_body').value=e.body;}else{document.getElementById('me_title').value='';document.getElementById('me_cat').value='self';document.getElementById('me_tags').value='';document.getElementById('me_body').value='';}document.getElementById('modal_essay_overlay').classList.add('show');}
+function saveEssay(){const t=document.getElementById('me_title').value.trim(),c=document.getElementById('me_cat').value,tg=document.getElementById('me_tags').value.split('/').map(x=>x.trim()).filter(Boolean),b=document.getElementById('me_body').value.trim();if(!t||!b){showToast('⚠️ 必填');return;}if(editingEssayId){const e=essays.find(e=>e.id===editingEssayId);e.title=t;e.cat=c;e.tags=tg;e.body=b;e.updatedAt=new Date().toISOString();}else essays.push({id:'e_'+Date.now(),title:t,cat:c,tags:tg,body:b,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});saveEssays();renderEssays();closeModal('modal_essay_overlay');showToast('✅ 已保存');}
+function deleteEssay(id){essays=essays.filter(e=>e.id!==id);saveEssays();renderEssays();showToast('已删除');}
+function copyEssayBody(id){const e=essays.find(e=>e.id===id);if(!e)return;navigator.clipboard.writeText(e.body).then(()=>showToast('📋 已复制'));}
+function renderEssays(){const f=currentEssayFilter==='all'?essays:essays.filter(e=>e.cat===currentEssayFilter);if(!f.length){document.getElementById('essay_list').innerHTML=essays.length?'<div class="empty" style="padding:20px;"><p>该分类无素材</p></div>':'<div class="empty" style="padding:20px;"><p>点击 ➕ 新增素材</p></div>';return;}let h='';f.forEach(e=>{h+=`<div class="essay-card"><div class="ec-top"><div class="ec-title">${e.title}</div><div class="ec-tags">${(e.tags||[]).map(t=>`<span class="ec-tag">${t}</span>`).join('')}</div></div><div class="ec-body">${e.body}<button class="btn btn-primary btn-sm ec-copy" onclick="copyEssayBody('${e.id}')">📋</button></div><div style="display:flex;gap:6px;margin-top:6px;justify-content:flex-end;"><button class="btn btn-ghost" onclick="openEssayModal('${e.id}')">✏️</button><button class="btn btn-ghost" style="color:var(--red);" onclick="deleteEssay('${e.id}')">🗑️</button></div></div>`;});document.getElementById('essay_list').innerHTML=h;}
+function setEssayFilter(f,btn){currentEssayFilter=f;document.querySelectorAll('#mat-essays .filter-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderEssays();}
+
+// ==================== QBANK ====================
+function loadQbank(){const s=localStorage.getItem('job_matcher_qbank');if(s)qbank=JSON.parse(s);}function saveQbank(){localStorage.setItem('job_matcher_qbank',JSON.stringify(qbank));}loadQbank();
+function openQbankModal(id){editingQbankId=id||null;if(id){const q=qbank.find(q=>q.id===id);document.getElementById('mq_title').value=q.title;document.getElementById('mq_cat').value=q.cat;document.getElementById('mq_desc').value=q.desc||'';document.getElementById('mq_tags').value=(q.tags||[]).join('/');document.getElementById('mq_links').value=(q.links||[]).map(l=>l.title+' '+l.url).join('\n');}else{document.getElementById('mq_title').value='';document.getElementById('mq_cat').value='tech';document.getElementById('mq_desc').value='';document.getElementById('mq_tags').value='';document.getElementById('mq_links').value='';}document.getElementById('modal_qbank_overlay').classList.add('show');}
+function saveQbank(){const t=document.getElementById('mq_title').value.trim(),c=document.getElementById('mq_cat').value,d=document.getElementById('mq_desc').value.trim(),tg=document.getElementById('mq_tags').value.split('/').map(x=>x.trim()).filter(Boolean);const lr=document.getElementById('mq_links').value.trim().split('\n').filter(l=>l.trim());const ls=lr.map(l=>{const ps=l.trim().split(/\s+/);const u=ps.find(p=>p.startsWith('http'));return{title:u?ps.filter(p=>p!==u).join(' ')||'链接':l.trim(),url:u||l.trim()};});if(!t){showToast('⚠️ 标题必填');return;}if(editingQbankId){const q=qbank.find(q=>q.id===editingQbankId);q.title=t;q.cat=c;q.desc=d;q.tags=tg;q.links=ls;q.updatedAt=new Date().toISOString();}else qbank.push({id:'q_'+Date.now(),title:t,cat:c,desc:d,tags:tg,links:ls,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});saveQbank();renderQbank();closeModal('modal_qbank_overlay');showToast('✅ 已保存');}
+function deleteQbank(id){qbank=qbank.filter(q=>q.id!==id);saveQbank();renderQbank();showToast('已删除');}
+function renderQbank(){const f=currentQbankFilter==='all'?qbank:qbank.filter(q=>q.cat===currentQbankFilter);const cc={tech:'qb-cat-tech',fin:'qb-cat-fin',gwy:'qb-cat-gwy',behavior:'qb-cat-behavior',other:'qb-cat-other'};const cl={tech:'💻技术',fin:'🏦金融',gwy:'🏛️行测',behavior:'🗣️行为',other:'📌其他'};if(!f.length){document.getElementById('qbank_list').innerHTML=qbank.length?'<div class="empty" style="padding:20px;"><p>该分类无题库</p></div>':'<div class="empty" style="padding:20px;"><p>点击 ➕ 新增题库</p></div>';return;}let h='';f.forEach(q=>{const lh=(q.links||[]).map(l=>`<div class="qb-link-item">🔗 <a href="${l.url}" target="_blank">${l.title}</a></div>`).join('');h+=`<div class="qbank-card"><div class="qb-top"><div class="qb-title">${q.title}</div><span class="qb-cat ${cc[q.cat]||'qb-cat-other'}">${cl[q.cat]||q.cat}</span></div>${q.desc?`<div class="qb-desc">${q.desc}</div>`:''}${lh?`<div class="qb-links">${lh}</div>`:''}${(q.tags||[]).length?`<div class="qb-tags">${q.tags.map(t=>`<span class="ec-tag">${t}</span>`).join('')}</div>`:''}<div style="display:flex;gap:6px;margin-top:8px;justify-content:flex-end;"><button class="btn btn-ghost" onclick="openQbankModal('${q.id}')">✏️</button><button class="btn btn-ghost" style="color:var(--red);" onclick="deleteQbank('${q.id}')">🗑️</button></div></div>`;});document.getElementById('qbank_list').innerHTML=h;}
+function setQbankFilter(f,btn){currentQbankFilter=f;document.querySelectorAll('#mat-qbank .filter-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderQbank();}
+
+// ==================== APPLY ====================
+function generateApply(jobId){const job=jobs.find(j=>j._id===jobId);if(!job&&tracking.length){const t=tracking.find(t=>t.jobId===jobId);if(t)return genApply(t.company,t.position,t.link,t.deadline);return;}if(!job)return;genApply(job.company,job.position,job.link,job.deadline);}
+function genApply(comp,pos,link,deadline){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===6));document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById('sec-apply').classList.add('active');
+  document.getElementById('apply_empty').style.display='none';document.getElementById('apply_content').style.display='block';
+  profileFields.forEach(id=>profile[id]=document.getElementById(id).value||'');
+  const pn=profile.p_name||'[姓名]',pg=profile.p_gender||'[性别]',pb=profile.p_birth||'[出生]',pp=profile.p_politics||'[政治]',pe=profile.p_ethnic||'[民族]',pd=profile.p_degree||'[学历]',ps=profile.p_school||'[院校]',pm=profile.p_major||'[专业]',pgr=profile.p_graddate||'[毕业]',pen=profile.p_english||'[外语]',pph=profile.p_phone||'[电话]',pem=profile.p_email||'[邮箱]';
+  const p=pos||'该岗位',c=comp||'贵公司';
+  const il=(profile.p_intern||'').split('\n').filter(l=>l.trim()),pl=(profile.p_project||'').split('\n').filter(l=>l.trim());
+  let si=`${pd}毕业于${ps}${pm}专业，`;if(il.length)si+=`有${il[0]}等实习经历，`;if(pen)si+=`${pen}，`;si+=`期望从事${p}相关工作，具备扎实的专业基础与实践能力。`;
+  let es=il.length?il.slice(0,3).map(l=>l.trim()).join('；'):pl.length?pl.slice(0,3).map(l=>l.trim()).join('；'):'[请补充经历]';
+  document.getElementById('apply_title').textContent=`报名信息 — ${comp||'岗位'} · ${pos||''}`;
+  document.getElementById('apply_text').textContent=`═══════════════════════════\n  ${c} · ${p} 报名信息\n═══════════════════════════\n\n姓    名：${pn}\n性    别：${pg}\n出生年月：${pb}\n政治面貌：${pp}\n民    族：${pe}\n学    历：${pd}\n毕业院校：${ps}\n专    业：${pm}\n毕业时间：${pgr}\n外语水平：${pen}\n联系电话：${pph}\n电子邮箱：${pem}\n\n───────────────────────\n  自我介绍（${p}方向）\n───────────────────────\n\n${si}\n\n───────────────────────\n  经历摘要\n───────────────────────\n\n${es}\n\n───────────────────────\n  其他\n───────────────────────\n\n${profile.p_certs?'证书/资格：'+profile.p_certs:''}\n${link?'报名链接：'+link:''}\n${deadline?'截止时间：'+deadline:''}`;
+  showToast('✅ 已生成');
+}
+function copyApply(){const t=document.getElementById('apply_text').textContent;navigator.clipboard.writeText(t).then(()=>showToast('📋 已复制')).catch(()=>{const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();document.execCommand('copy');document.body.removeChild(a);showToast('📋 已复制');});}
+
+// ==================== INIT ====================
+(function(){const sp=localStorage.getItem('job_matcher_profile');if(sp)profile=JSON.parse(sp);const st=localStorage.getItem('job_matcher_tracking');if(st)tracking=JSON.parse(st);const se=localStorage.getItem('job_matcher_essays');if(se)essays=JSON.parse(se);const sq=localStorage.getItem('job_matcher_qbank');if(sq)qbank=JSON.parse(sq);profileFields.forEach(id=>{if(profile[id])document.getElementById(id).value=profile[id];});})();
+</script>
+<script type="text/javascript" src="/accessproxy_statics/h5_fp.js" defer></script>
+<script type="text/javascript" src="/accessproxy_statics/wm.js" defer></script>
+</body>
+</html>
